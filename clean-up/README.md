@@ -6,10 +6,10 @@ This guide provides steps to clean up and optimize your Raspberry Pi for running
 
 | Service          | Short Description                               | Guide                                                                                                            |
 |------------------|-------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| hciuart          | Bluetooth initialization service                | [disable-hciuart.md](https://github.com/fokklz/rasperry-pi-hole/blob/main/clean-up/disable-hciuart.md)           |
 | avahi-daemon     | Local network service discovery                 | [disable-avahi-daemon.md](https://github.com/fokklz/rasperry-pi-hole/blob/main/clean-up/disable-avahi-daemon.md) |
-| triggerhappy     | Global hotkey management                        | [disable-triggerhappy.md](https://github.com/fokklz/rasperry-pi-hole/blob/main/clean-up/disable-triggerhappy.md) |
+| hciuart          | Bluetooth initialization service                | [disable-hciuart.md](https://github.com/fokklz/rasperry-pi-hole/blob/main/clean-up/disable-hciuart.md)           |
 | dphys-swapfile   | Swap file management for virtual memory         | [disable-swap-file.md](https://github.com/fokklz/rasperry-pi-hole/blob/main/clean-up/disable-swap-file.md)       |
+| triggerhappy     | Global hotkey management                        | [disable-triggerhappy.md](https://github.com/fokklz/rasperry-pi-hole/blob/main/clean-up/disable-triggerhappy.md) |
 
 ## Assistance
 
