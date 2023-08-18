@@ -2,7 +2,7 @@
 
 This guide provides steps to clean up and optimize your Raspberry Pi for running Docker containers, especially for Pi-hole.
 
-**BEFORE U DISABLE ANY SERVICE READ THE CONSIDEARTIONS FOR IT**
+**BEFORE U DISABLE ANY SERVICE READ THE CONSIDERATIONS FOR IT**
 
 | Service          | Short Description                               | Guide                                                                                                            |
 |------------------|-------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
