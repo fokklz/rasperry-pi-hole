@@ -2,6 +2,8 @@
 
 This guide provides steps to clean up and optimize your Raspberry Pi for running Docker containers, especially for Pi-hole.
 
+**BEFORE U DISABLE ANY SERVICE READ THE CONSIDEARTIONS FOR IT**
+
 | Service          | Short Description                               | Guide                                                                                                            |
 |------------------|-------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
 | hciuart          | Bluetooth initialization service                | [disable-hciuart.md](https://github.com/fokklz/rasperry-pi-hole/blob/main/clean-up/disable-hciuart.md)           |
