@@ -28,6 +28,7 @@ If you have a Raspberry PI with low RAM, you can read [Clean Up](https://github.
 
 Install Docker and add your Pi-User to the docker Group to allow executing Docker
 ```sh
+sudo apt-get update && sudo apt-get upgrade -y
 curl -sSL https://get.docker.com/ | sudo CHANNEL=stable sh
 sudo usermod -aG docker $USER
 sudo systemctl restart docker
