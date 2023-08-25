@@ -703,15 +703,16 @@ mac_to_eui64() {
     # Invert the 7th bit (U/L bit)
     local inverted_bit=$(printf '%02x' "$((0x${oui:0:2} ^ 0x02))")
 
-    echo "${inverted_bit}${oui:2:4}fffe${nic}"
+    # Construct the EUI-64 with colons
+    echo "${inverted_bit}${oui:2:2}:${oui:4:2}ff:fe${nic:0:2}:${nic:2:4}${nic:6:2}"
 }
 
 generateIPv6() {
     local prefix="$1"
     local interface="$2"
 
-    # Fetch the MAC address
-    local mac=$(cat /sys/class/net/${interface}/address | tr -d ':')
+    # Fetch the MAC address and convert to lowercase
+    local mac=$(cat /sys/class/net/${interface}/address | tr -d ':' | tr 'A-F' 'a-f')
 
     # Convert the MAC address to EUI-64 format
     local eui64=$(mac_to_eui64 "${mac}")
