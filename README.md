@@ -39,6 +39,9 @@ wget -O basic-install.sh https://pi-hole.flz.ink
 sudo PIHOLE_IP=192.168.1.5 bash ./basic-install.sh
 ```
 
+**Note:** you can predefine the password by adding `PIHOLE_PW=[your password]` to the command above. (before `bash`)
+
+
 ## Post-Setup
 
 If you have a Raspberry Pi with limited RAM or encounter issues, you can refer to [Clean Up](https://github.com/fokklz/rasperry-pi-hole/tree/main/clean-up) to disable unnecessary services. This will free up more memory on your device.

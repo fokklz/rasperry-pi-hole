@@ -9,52 +9,42 @@
 					"label": "welcomeDialogs"
 				},
 				{
-					"line": 673,
-					"column": 18,
-					"label": "chooseInterface"
-				},
-				{
-					"line": 765,
-					"column": 18,
-					"label": "find_IPv6_information"
-				},
-				{
-					"line": 906,
+					"line": 898,
 					"column": 18,
 					"label": "getStaticIPv4Settings"
 				},
 				{
-					"line": 1131,
+					"line": 1122,
 					"column": 18,
 					"label": "setDNS"
 				},
 				{
-					"line": 1162,
+					"line": 1153,
 					"column": 18,
 					"label": "setLogging"
 				},
 				{
-					"line": 1190,
+					"line": 1181,
 					"column": 18,
 					"label": "setPrivacyLevel"
 				},
 				{
-					"line": 1260,
+					"line": 1251,
 					"column": 18,
 					"label": "setAdminFlag"
 				},
 				{
-					"line": 1299,
+					"line": 1290,
 					"column": 18,
 					"label": "chooseBlocklists"
 				},
 				{
-					"line": 2132,
+					"line": 2123,
 					"column": 18,
 					"label": "displayFinalMessage"
 				},
 				{
-					"line": 2930,
+					"line": 2937,
 					"column": 18,
 					"label": "main"
 				}
