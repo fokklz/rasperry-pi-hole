@@ -39,14 +39,9 @@
 					"label": "chooseBlocklists"
 				},
 				{
-					"line": 2137,
+					"line": 2136,
 					"column": 18,
 					"label": "displayFinalMessage"
-				},
-				{
-					"line": 2951,
-					"column": 18,
-					"label": "main"
 				}
 			]
 		}

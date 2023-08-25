@@ -718,7 +718,7 @@ generateIPv6() {
     local eui64=$(mac_to_eui64 "${mac}")
 
     # Combine the prefix with the EUI-64 address
-    echo "${prefix}${eui64}/64"
+    echo "${prefix}:${eui64}/64"
 }
 
 find_IPv6_information() {
@@ -2132,10 +2132,16 @@ displayFinalMessage() {
         --title "Installation Complete!" \
         --msgbox "Configure your devices to use the Pi-hole as their DNS server using:\
 \\n\\nIPv4:	${IPV4_ADDRESS%/*}\
-\\nIPv6:	${IPV6_ADDRESS:-"Not Configured"}\
-\\nIf you have not done so already, the above IP should be set to static.\
+\\nIPv6:	${IPV6_ADDRESS%/*}\
 \\n${additional}\
 \\n\\nThe Pi-hole is free, but powered by your donations:  https://pi-hole.net/donate/" "${r}" "${c}"
+
+    # set the MOTD
+    echo "Configure your devices to use the Pi-hole as their DNS server using:\
+\\n\\nIPv4:	${IPV4_ADDRESS%/*}\
+\\nIPv6:	${IPV6_ADDRESS%/*}\
+\\nView the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin\
+\\n\\nThe Pi-hole is free, but powered by your donations:  https://pi-hole.net/donate/" | sudo tee /etc/motd
 
     clear
 }
@@ -2947,13 +2953,15 @@ main() {
     if [[ "${INSTALL_TYPE}" == "Update" ]]; then
         printf "\\n"
         "${PI_HOLE_BIN_DIR}"/pihole version --current
+    else
+        # MODIFICATION: FLZ_PI_HOLE
+        install_cloudflared
     fi
 
     # MODIFICATION: FLZ_PI_HOLE
-    install_cloudflared
-    echo "Installation complete. The system will restart in 10 seconds..."
+    echo "Installation complete. The system will update & restart in 10 seconds..."
     sleep 10
-    sudo reboot
+    sudo apt update && sudo apt upgrade -y && sudo reboot
 }
 
 # allow to source this script without running it
