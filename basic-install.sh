@@ -17,7 +17,6 @@
 
 
 
-
 # Pi-hole: A black hole for Internet advertisements
 # (c) Pi-hole (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
@@ -593,6 +592,35 @@ get_available_interfaces() {
 
 # A function for displaying the dialogs the user sees when first running the installer
 welcomeDialogs() {
+#     # Display the welcome dialog using an appropriately sized window via the calculation conducted earlier in the script
+#     dialog --no-shadow --clear --keep-tite \
+#         --backtitle "Welcome" \
+#             --title "Pi-hole Automated Installer" \
+#             --msgbox "\\n\\nThis installer will transform your device into a network-wide ad blocker!" \
+#             "${r}" "${c}" \
+#             --and-widget --clear \
+#         --backtitle "Support Pi-hole" \
+#             --title "Open Source Software" \
+#             --msgbox "\\n\\nThe Pi-hole is free, but powered by your donations:  https://pi-hole.net/donate/" \
+#             "${r}" "${c}" \
+#             --and-widget --clear \
+#         --colors \
+#             --backtitle "Initiating network interface" \
+#             --title "Static IP Needed" \
+#             --no-button "Exit" --yes-button "Continue" \
+#             --defaultno \
+#             --yesno "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.\\n\\n\
+# \\Zb\\Z1IMPORTANT:\\Zn If you have not already done so, you must ensure that this device has a static IP.\\n\\n\
+# Depending on your operating system, there are many ways to achieve this, through DHCP reservation, or by manually assigning one.\\n\\n\
+# Please continue when the static addressing has been configured."\
+#             "${r}" "${c}" && result=0 || result="$?"
+
+#          case "${result}" in
+#              "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+#                 printf "  %b Installer exited at static IP message.\\n" "${INFO}"
+#                 exit 1
+#                 ;;
+#          esac
     # MODIFICATION: FLZ_PI_HOLE
     # will be displayed at the end
     printf "staring installation\\n"
@@ -600,6 +628,49 @@ welcomeDialogs() {
 
 # A function that lets the user pick an interface to use with Pi-hole
 chooseInterface() {
+    # # Turn the available interfaces into a string so it can be used with dialog
+    # local interfacesList
+    # # Number of available interfaces
+    # local interfaceCount
+
+    # # POSIX compliant way to get the number of elements in an array
+    # interfaceCount=$(printf "%s\n" "${availableInterfaces}" | wc -l)
+
+    # # If there is one interface,
+    # if [[ "${interfaceCount}" -eq 1 ]]; then
+    #     # Set it as the interface to use since there is no other option
+    #     PIHOLE_INTERFACE="${availableInterfaces}"
+    # # Otherwise,
+    # else
+    #     # Set status for the first entry to be selected
+    #     status="ON"
+
+    #     # While reading through the available interfaces
+    #     for interface in ${availableInterfaces}; do
+    #         # Put all these interfaces into a string
+    #         interfacesList="${interfacesList}${interface} available ${status} "
+    #         # All further interfaces are deselected
+    #         status="OFF"
+    #     done
+    #     # shellcheck disable=SC2086
+    #     # Disable check for double quote here as we are passing a string with spaces
+    #     PIHOLE_INTERFACE=$(dialog --no-shadow --keep-tite --output-fd 1 \
+    #         --cancel-label "Exit" --ok-label "Select" \
+    #         --radiolist "Choose An Interface (press space to toggle selection)" \
+    #         ${r} ${c} "${interfaceCount}" ${interfacesList})
+
+    #     result=$?
+    #     case ${result} in
+    #         "${DIALOG_CANCEL}"|"${DIALOG_ESC}")
+    #             # Show an error message and exit
+    #             printf "  %b %s\\n" "${CROSS}" "No interface selected, exiting installer"
+    #             exit 1
+    #             ;;
+    #     esac
+
+    #     printf "  %b Using interface: %s\\n" "${INFO}" "${PIHOLE_INTERFACE}"
+    # fi
+    
     # MODIFICATION: FLZ_PI_HOLE
     PIHOLE_INTERFACE="eth0"
     printf "  %b Using interface: %s\\n" "${INFO}" "${PIHOLE_INTERFACE}"
@@ -632,40 +703,101 @@ testIPv6() {
     fi
 }
 
-find_IPv6_information() {
-    # Detects IPv6 address used for communication to WAN addresses.
-    mapfile -t IPV6_ADDRESSES <<<"$(ip -6 address | grep 'scope global' | awk '{print $2}')"
+mac_to_eui64() {
+    # ADDED: FLZ_PI_HOLE
+    local mac="$1"
+    local oui="${mac:0:6}"     # First 24 bits of MAC
+    local nic="${mac:6:12}"    # Last 24 bits of MAC
 
-    # For each address in the array above, determine the type of IPv6 address it is
+    # Invert the 7th bit (U/L bit)
+    local inverted_bit=$(printf '%02x' "$((0x${oui:0:2} ^ 0x02))")
+
+    echo "${inverted_bit}${oui:2:4}fffe${nic}"
+}
+
+generateIPv6() {
+    # ADDED: FLZ_PI_HOLE
+    local prefix="$1"
+    local interface="$2"  # Assuming you're passing the network interface as the 2nd argument
+
+    # Fetch the MAC address
+    local mac=$(cat /sys/class/net/${interface}/address | tr -d ':')
+
+    # Convert the MAC address to EUI-64 format
+    local eui64=$(mac_to_eui64 "${mac}")
+
+    # Combine the prefix with the EUI-64 address
+    echo "${prefix}${eui64}"
+}
+
+find_IPv6_information() {
+    # # Detects IPv6 address used for communication to WAN addresses.
+    # mapfile -t IPV6_ADDRESSES <<<"$(ip -6 address | grep 'scope global' | awk '{print $2}')"
+
+    # # For each address in the array above, determine the type of IPv6 address it is
+    # for i in "${IPV6_ADDRESSES[@]}"; do
+    #     # Check if it's ULA, GUA, or LL by using the function created earlier
+    #     result=$(testIPv6 "$i")
+    #     # If it's a ULA address, use it and store it as a global variable
+    #     [[ "${result}" == "ULA" ]] && ULA_ADDRESS="${i%/*}"
+    #     # If it's a GUA address, use it and store it as a global variable
+    #     [[ "${result}" == "GUA" ]] && GUA_ADDRESS="${i%/*}"
+    #     # Else if it's a Link-local address, we cannot use it, so just continue
+    # done
+
+    # # Determine which address to be used: Prefer ULA over GUA or don't use any if none found
+    # # If the ULA_ADDRESS contains a value,
+    # if [[ -n "${ULA_ADDRESS}" ]]; then
+    #     # set the IPv6 address to the ULA address
+    #     IPV6_ADDRESS="${ULA_ADDRESS}"
+    #     # Show this info to the user
+    #     printf "  %b Found IPv6 ULA address\\n" "${INFO}"
+    # # Otherwise, if the GUA_ADDRESS has a value,
+    # elif [[ -n "${GUA_ADDRESS}" ]]; then
+    #     # Let the user know
+    #     printf "  %b Found IPv6 GUA address\\n" "${INFO}"
+    #     # And assign it to the global variable
+    #     IPV6_ADDRESS="${GUA_ADDRESS}"
+    # # If none of those work,
+    # else
+    #     printf "  %b Unable to find IPv6 ULA/GUA address\\n" "${INFO}"
+    #     # So set the variable to be empty
+    #     IPV6_ADDRESS=""
+    # fi
+    # Detects IPv6 address used for communication to WAN addresses.
+    # MODIFICATION: FLZ_PI_HOLE
+    local interface=$PIHOLE_INTERFACE  # Assuming eth0, but replace with your interface if different
+
+    mapfile -t IPV6_ADDRESSES <<<"$(ip -6 address show dev ${interface} | grep 'scope global' | awk '{print $2}')"
+
     for i in "${IPV6_ADDRESSES[@]}"; do
-        # Check if it's ULA, GUA, or LL by using the function created earlier
         result=$(testIPv6 "$i")
-        # If it's a ULA address, use it and store it as a global variable
         [[ "${result}" == "ULA" ]] && ULA_ADDRESS="${i%/*}"
-        # If it's a GUA address, use it and store it as a global variable
         [[ "${result}" == "GUA" ]] && GUA_ADDRESS="${i%/*}"
-        # Else if it's a Link-local address, we cannot use it, so just continue
     done
 
-    # Determine which address to be used: Prefer ULA over GUA or don't use any if none found
-    # If the ULA_ADDRESS contains a value,
+    local prefix=""
     if [[ -n "${ULA_ADDRESS}" ]]; then
-        # set the IPv6 address to the ULA address
-        IPV6_ADDRESS="${ULA_ADDRESS}"
-        # Show this info to the user
-        printf "  %b Found IPv6 ULA address\\n" "${INFO}"
-    # Otherwise, if the GUA_ADDRESS has a value,
+        prefix="${ULA_ADDRESS%:*}:"
     elif [[ -n "${GUA_ADDRESS}" ]]; then
-        # Let the user know
-        printf "  %b Found IPv6 GUA address\\n" "${INFO}"
-        # And assign it to the global variable
-        IPV6_ADDRESS="${GUA_ADDRESS}"
-    # If none of those work,
+        prefix="${GUA_ADDRESS%:*}:"
     else
         printf "  %b Unable to find IPv6 ULA/GUA address\\n" "${INFO}"
-        # So set the variable to be empty
         IPV6_ADDRESS=""
+        return
     fi
+
+    # Generate IPv6 address based on MAC address
+    IPV6_ADDRESS=$(generateIPv6 "${prefix}" "${interface}")
+
+    # Check if the generated address is already in use (using DAD)
+    if ip -6 neighbor probe "${IPV6_ADDRESS}"; then
+        printf "  %b IPv6 address based on MAC is already in use. This is unexpected.\\n" "${ERROR}"
+        IPV6_ADDRESS=""
+        return
+    fi
+
+    printf "  %b Generated IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
 }
 
 # A function to collect IPv4 and IPv6 information of the device
@@ -683,19 +815,104 @@ collect_v4andv6_information() {
 }
 
 getStaticIPv4Settings() {
+#     # Local, named variables
+#     local ipSettingsCorrect
+#     local DHCPChoice
+#     # Ask if the user wants to use DHCP settings as their static IP
+#     # This is useful for users that are using DHCP reservations; we can use the information gathered
+#     DHCPChoice=$(dialog --no-shadow --keep-tite --output-fd 1 \
+#         --cancel-label "Exit" --ok-label "Continue" \
+#         --backtitle "Calibrating network interface" \
+#         --title "Static IP Address" \
+#         --menu "Do you want to use your current network settings as a static address?\\n \
+#             IP address:    ${IPV4_ADDRESS}\\n \
+#             Gateway:       ${IPv4gw}\\n" \
+#             "${r}" "${c}" 3 \
+#                 "Yes" "Set static IP using current values" \
+#                 "No" "Set static IP using custom values" \
+#                 "Skip" "I will set a static IP later, or have already done so")
+
+#         result=$?
+#         case ${result} in
+#             "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+#             printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+#             exit 1
+#             ;;
+#         esac
+
+#         case ${DHCPChoice} in
+#             "Skip")
+#                 return
+#                 ;;
+#             "Yes")
+#             # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
+#             dialog --no-shadow --keep-tite \
+#                 --cancel-label "Exit" \
+#                 --backtitle "IP information" \
+#                 --title "FYI: IP Conflict" \
+#                 --msgbox "\\nIt is possible your router could still try to assign this IP to a device, which would cause a conflict, \
+# but in most cases the router is smart enough to not do that.\n\n\
+# If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.\n\n\
+# It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address."\
+#                 "${r}" "${c}" && result=0 || result=$?
+
+#                 case ${result} in
+#                     "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+#                     printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+#                     exit 1
+#                     ;;
+#                 esac
+#             ;;
+
+#             "No")
+#             # Otherwise, we need to ask the user to input their desired settings.
+#             # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
+#             # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
+#             ipSettingsCorrect=false
+#             until [[ "${ipSettingsCorrect}" = True ]]; do
+
+#                 # Ask for the IPv4 address
+#                 _staticIPv4Temp=$(dialog --no-shadow --keep-tite --output-fd 1 \
+#                     --cancel-label "Exit" \
+#                     --ok-label "Continue" \
+#                     --backtitle "Calibrating network interface" \
+#                     --title "IPv4 Address" \
+#                     --form "\\nEnter your desired IPv4 address" \
+#                     "${r}" "${c}" 0 \
+#                         "IPv4 Address:" 1 1 "${IPV4_ADDRESS}" 1 15 19 0 \
+#                         "IPv4 Gateway:" 2 1 "${IPv4gw}" 2 15 19 0)
+
+#                 result=$?
+#                 case ${result} in
+#                     "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+#                     printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+#                     exit 1
+#                     ;;
+#                 esac
+
+#                 IPV4_ADDRESS=${_staticIPv4Temp%$'\n'*}
+#                 IPv4gw=${_staticIPv4Temp#*$'\n'}
+
+#                 # Give the user a chance to review their settings before moving on
+#                 dialog --no-shadow --keep-tite \
+#                     --no-label "Edit IP" \
+#                     --backtitle "Calibrating network interface" \
+#                     --title "Static IP Address" \
+#                     --defaultno \
+#                     --yesno "Are these settings correct?
+#                         IP address: ${IPV4_ADDRESS}
+#                         Gateway:    ${IPv4gw}" \
+#                     "${r}" "${c}" && ipSettingsCorrect=True
+#             done
+#             ;;
+#        esac
     # MODIFICATION: FLZ_PI_HOLE
-    return
+    IPV4_ADDRESS="${PIHOLE_IP}"
+    setDHCPCD
 }
 
 # Configure networking via dhcpcd
 setDHCPCD() {
-    # MODIFICATION: FLZ_PI_HOLE
-    # Check if PIHOLE_IP environment variable is set
-    # If it is, use that as the IPV4_ADDRESS
-    if [ -n "${PIHOLE_IP}" ]; then
-        IPV4_ADDRESS="${PIHOLE_IP}"
-    fi
-
     # Regex for matching a non-commented static ip address setting
     local regex="^[ \t]*static ip_address[ \t]*=[ \t]*${IPV4_ADDRESS}"
 
@@ -760,6 +977,160 @@ valid_ip6() {
 
 # A function to choose the upstream DNS provider(s)
 setDNS() {
+#     # Local, named variables
+#     local DNSSettingsCorrect
+
+#     # In an array, list the available upstream providers
+#     DNSChooseOptions=()
+#     local DNSServerCount=0
+#     # Save the old Internal Field Separator in a variable,
+#     OIFS=$IFS
+#     # and set the new one to newline
+#     IFS=$'\n'
+#     # Put the DNS Servers into an array
+#     for DNSServer in ${DNS_SERVERS}
+#     do
+#         DNSName="$(cut -d';' -f1 <<< "${DNSServer}")"
+#         DNSChooseOptions[DNSServerCount]="${DNSName}"
+#         (( DNSServerCount=DNSServerCount+1 ))
+#         DNSChooseOptions[DNSServerCount]=""
+#         (( DNSServerCount=DNSServerCount+1 ))
+#     done
+#     DNSChooseOptions[DNSServerCount]="Custom"
+#     (( DNSServerCount=DNSServerCount+1 ))
+#     DNSChooseOptions[DNSServerCount]=""
+#     # Restore the IFS to what it was
+#     IFS=${OIFS}
+#     # In a dialog, show the options
+#     DNSchoices=$(dialog --no-shadow --keep-tite --output-fd 1 \
+#                     --cancel-label "Exit" \
+#                     --menu "Select Upstream DNS Provider. To use your own, select Custom." "${r}" "${c}" 7 \
+#         "${DNSChooseOptions[@]}")
+
+#         result=$?
+#         case ${result} in
+#             "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+#             printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+#             exit 1
+#             ;;
+#         esac
+
+#     # Depending on the user's choice, set the GLOBAL variables to the IP of the respective provider
+#     if [[ "${DNSchoices}" == "Custom" ]]
+#     then
+#         # Loop until we have a valid DNS setting
+#         until [[ "${DNSSettingsCorrect}" = True ]]; do
+#             # Signal value, to be used if the user inputs an invalid IP address
+#             strInvalid="Invalid"
+#             if [[ ! "${PIHOLE_DNS_1}" ]]; then
+#                 if [[ ! "${PIHOLE_DNS_2}" ]]; then
+#                     # If the first and second upstream servers do not exist, do not prepopulate an IP address
+#                     prePopulate=""
+#                 else
+#                     # Otherwise, prepopulate the dialogue with the appropriate DNS value(s)
+#                     prePopulate=", ${PIHOLE_DNS_2}"
+#                 fi
+#             elif  [[ "${PIHOLE_DNS_1}" ]] && [[ ! "${PIHOLE_DNS_2}" ]]; then
+#                 prePopulate="${PIHOLE_DNS_1}"
+#             elif [[ "${PIHOLE_DNS_1}" ]] && [[ "${PIHOLE_DNS_2}" ]]; then
+#                 prePopulate="${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}"
+#             fi
+
+#             # Prompt the user to enter custom upstream servers
+#             piholeDNS=$(dialog --no-shadow --keep-tite --output-fd 1 \
+#                             --cancel-label "Exit" \
+#                             --backtitle "Specify Upstream DNS Provider(s)" \
+#                             --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\
+# If you want to specify a port other than 53, separate it with a hash.\
+# \\n\\nFor example '8.8.8.8, 8.8.4.4' or '127.0.0.1#5335'"\
+#                                 "${r}" "${c}" "${prePopulate}")
+
+#             result=$?
+#             case ${result} in
+#                 "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+#                 printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+#                 exit 1
+#                 ;;
+#             esac
+
+#             # Clean user input and replace whitespace with comma.
+#             piholeDNS=$(sed 's/[, \t]\+/,/g' <<< "${piholeDNS}")
+
+#             # Separate the user input into the two DNS values (separated by a comma)
+#             printf -v PIHOLE_DNS_1 "%s" "${piholeDNS%%,*}"
+#             printf -v PIHOLE_DNS_2 "%s" "${piholeDNS##*,}"
+
+#             # If the first DNS value is invalid or empty, this if statement will be true and we will set PIHOLE_DNS_1="Invalid"
+#             if ! valid_ip "${PIHOLE_DNS_1}" || [[ ! "${PIHOLE_DNS_1}" ]]; then
+#                 PIHOLE_DNS_1=${strInvalid}
+#             fi
+#             # If the second DNS value is invalid or empty, this if statement will be true and we will set PIHOLE_DNS_2="Invalid"
+#             if ! valid_ip "${PIHOLE_DNS_2}" && [[ "${PIHOLE_DNS_2}" ]]; then
+#                 PIHOLE_DNS_2=${strInvalid}
+#             fi
+#             # If either of the DNS servers are invalid,
+#             if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]] || [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
+#                 # explain this to the user,
+#                 dialog --no-shadow --keep-tite \
+#                     --title "Invalid IP Address(es)" \
+#                     --backtitle "Invalid IP" \
+#                     --msgbox "\\nOne or both of the entered IP addresses were invalid. Please try again.\
+# \\n\\nInvalid IPs: ${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}" \
+#                     "${r}" "${c}"
+
+#                 # set the variables back to nothing,
+#                 if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]]; then
+#                     PIHOLE_DNS_1=""
+#                 fi
+#                 if [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
+#                     PIHOLE_DNS_2=""
+#                 fi
+#                 # and continue the loop.
+#                 DNSSettingsCorrect=False
+#             else
+#                 dialog --no-shadow --no-collapse --keep-tite \
+#                     --backtitle "Specify Upstream DNS Provider(s)" \
+#                     --title "Upstream DNS Provider(s)" \
+#                     --yesno "Are these settings correct?\\n"$'\t'"DNS Server 1:"$'\t'"${PIHOLE_DNS_1}\\n"$'\t'"DNS Server 2:"$'\t'"${PIHOLE_DNS_2}" \
+#                     "${r}" "${c}" && result=0 || result=$?
+
+#                 case ${result} in
+#                     "${DIALOG_OK}")
+#                         DNSSettingsCorrect=True
+#                         ;;
+#                     "${DIALOG_CANCEL}")
+#                         DNSSettingsCorrect=False
+#                         ;;
+#                     "${DIALOG_ESC}")
+#                         printf "  %b Escape pressed, exiting installer at DNS Settings%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+#                         exit 1
+#                         ;;
+#                 esac
+#             fi
+#         done
+#     else
+#         # Save the old Internal Field Separator in a variable,
+#         OIFS=$IFS
+#         # and set the new one to newline
+#         IFS=$'\n'
+#         for DNSServer in ${DNS_SERVERS}
+#         do
+#             DNSName="$(cut -d';' -f1 <<< "${DNSServer}")"
+#             if [[ "${DNSchoices}" == "${DNSName}" ]]
+#             then
+#                 PIHOLE_DNS_1="$(cut -d';' -f2 <<< "${DNSServer}")"
+#                 PIHOLE_DNS_2="$(cut -d';' -f3 <<< "${DNSServer}")"
+#                 break
+#             fi
+#         done
+#         # Restore the IFS to what it was
+#         IFS=${OIFS}
+#     fi
+
+#     # Display final selection
+#     local DNSIP=${PIHOLE_DNS_1}
+#     [[ -z ${PIHOLE_DNS_2} ]] || DNSIP+=", ${PIHOLE_DNS_2}"
+#     printf "  %b Using upstream DNS: %s (%s)\\n" "${INFO}" "${DNSchoices}" "${DNSIP}"
     # MODIFICATION: FLZ_PI_HOLE
     PIHOLE_DNS_1="127.0.0.1#5053"
     PIHOLE_DNS_2="127.0.0.1#5053"
@@ -767,6 +1138,30 @@ setDNS() {
 
 # Allow the user to enable/disable logging
 setLogging() {
+    # # Ask the user if they want to enable logging
+    # dialog --no-shadow --keep-tite \
+    #     --backtitle "Pihole Installation" \
+    #     --title "Enable Logging" \
+    #     --yesno "\\n\\nWould you like to enable query logging?" \
+    #     "${r}" "${c}" && result=0 || result=$?
+
+    # case ${result} in
+    #     "${DIALOG_OK}")
+    #         # If they chose yes,
+    #         printf "  %b Query Logging on.\\n" "${INFO}"
+    #         QUERY_LOGGING=true
+    #         ;;
+    #     "${DIALOG_CANCEL}")
+    #         # If they chose no,
+    #         printf "  %b Query Logging off.\\n" "${INFO}"
+    #         QUERY_LOGGING=false
+    #         ;;
+    #     "${DIALOG_ESC}")
+    #         # User pressed <ESC>
+    #         printf "  %b Escape pressed, exiting installer at Query Logging choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+    #         exit 1
+    #         ;;
+    # esac
     # MODIFICATION: FLZ_PI_HOLE
     printf "  %b Query Logging on.\\n" "${INFO}"
     QUERY_LOGGING=true
@@ -774,13 +1169,97 @@ setLogging() {
 
 # Allow the user to set their FTL privacy level
 setPrivacyLevel() {
+    # # The default selection is level 0
+    # PRIVACY_LEVEL=$(dialog --no-shadow --keep-tite --output-fd 1 \
+    #     --cancel-label "Exit" \
+    #     --ok-label "Continue" \
+    #     --radiolist "Select a privacy mode for FTL. https://docs.pi-hole.net/ftldns/privacylevels/" \
+    #     "${r}" "${c}" 6 \
+    #     "0" "Show everything" on \
+    #     "1" "Hide domains" off \
+    #     "2" "Hide domains and clients" off \
+    #     "3" "Anonymous mode" off)
+
+    #     result=$?
+    #     case ${result} in
+    #         "${DIALOG_OK}")
+    #             printf "  %b Using privacy level: %s\\n" "${INFO}" "${PRIVACY_LEVEL}"
+    #             ;;
+    #         "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+    #             printf "  %b Cancelled privacy level selection.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+    #             exit 1
+    #             ;;
+    #     esac
     # MODIFICATION: FLZ_PI_HOLE
-    # The default selection is level 0
     PRIVACY_LEVEL=0
 }
 
 # Function to ask the user if they want to install the dashboard
 setAdminFlag() {
+#     # Similar to the logging function, ask what the user wants
+#     dialog --no-shadow --keep-tite \
+#         --backtitle "Pihole Installation" \
+#         --title "Admin Web Interface" \
+#         --yesno "\\n\\nDo you want to install the Admin Web Interface?" \
+#         "${r}" "${c}" && result=0 || result=$?
+
+#     case ${result} in
+#         "${DIALOG_OK}")
+#             # If they chose yes,
+#             printf "  %b Installing Admin Web Interface\\n" "${INFO}"
+#             # Set the flag to install the web interface
+#             INSTALL_WEB_INTERFACE=true
+#             ;;
+#         "${DIALOG_CANCEL}")
+#             # If they chose no,
+#             printf "  %b Not installing Admin Web Interface\\n" "${INFO}"
+#             # Set the flag to not install the web interface
+#             INSTALL_WEB_INTERFACE=false
+#             INSTALL_WEB_SERVER=false
+#             ;;
+#         "${DIALOG_ESC}")
+#             # User pressed <ESC>
+#             printf "  %b Escape pressed, exiting installer at Admin Web Interface choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+#             exit 1
+#             ;;
+#     esac
+
+#     # If the user wants to install the Web admin interface (i.e. it has not been deselected above) and did not deselect the web server via command-line argument
+#     if [[ "${INSTALL_WEB_INTERFACE}" == true && "${INSTALL_WEB_SERVER}" == true ]]; then
+#         # Get list of required PHP modules, excluding base package (common) and handler (cgi)
+#         local i php_modules
+#         for i in "${PIHOLE_WEB_DEPS[@]}"; do [[ $i == 'php'* && $i != *'-common' && $i != *'-cgi' ]] && php_modules+=" ${i#*-}"; done
+#         dialog --no-shadow --keep-tite \
+#             --backtitle "Pi-hole Installation" \
+#             --title "Web Server" \
+#             --yesno "\\n\\nA web server is required for the Admin Web Interface.\
+# \\n\\nDo you want to install lighttpd and the required PHP modules?\
+# \\n\\nNB: If you disable this, and, do not have an existing web server \
+# and required PHP modules (${php_modules# }) installed, the web interface \
+# will not function. Additionally the web server user needs to be member of \
+# the \"pihole\" group for full functionality." \
+#             "${r}" "${c}" && result=0 || result=$?
+
+#         case ${result} in
+#             "${DIALOG_OK}")
+#                 # If they chose yes,
+#                 printf "  %b Installing lighttpd\\n" "${INFO}"
+#                 # Set the flag to install the web server
+#                 INSTALL_WEB_SERVER=true
+#                 ;;
+#             "${DIALOG_CANCEL}")
+#                 # If they chose no,
+#                 printf "  %b Not installing lighttpd\\n" "${INFO}"
+#                 # Set the flag to not install the web server
+#                 INSTALL_WEB_SERVER=false
+#                 ;;
+#             "${DIALOG_ESC}")
+#                 # User pressed <ESC>
+#                 printf "  %b Escape pressed, exiting installer at web server choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+#                 exit 1
+#                 ;;
+#         esac
+#     fi
     # MODIFICATION: FLZ_PI_HOLE
     INSTALL_WEB_INTERFACE=true
     printf "  %b Installing lighttpd\\n" "${INFO}"
@@ -789,9 +1268,37 @@ setAdminFlag() {
 
 # A function to display a list of example blocklists for users to select
 chooseBlocklists() {
+    # Back up any existing adlist file, on the off chance that it exists. Useful in case of a reconfigure.
     if [[ -f "${adlistFile}" ]]; then
         mv "${adlistFile}" "${adlistFile}.old"
     fi
+#     # Let user select (or not) blocklists
+#     dialog --no-shadow --keep-tite \
+#         --backtitle "Pi-hole Installation" \
+#         --title "Blocklists" \
+#         --yesno "\\nPi-hole relies on third party lists in order to block ads.\
+# \\n\\nYou can use the suggestion below, and/or add your own after installation.\
+# \\n\\nSelect 'Yes' to include:\
+# \\n\\nStevenBlack's Unified Hosts List" \
+#         "${r}" "${c}" && result=0 || result=$?
+
+#     case ${result} in
+#         "${DIALOG_OK}")
+#             # If they chose yes,
+#             printf "  %b Installing StevenBlack's Unified Hosts List\\n" "${INFO}"
+#             echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}"
+#             ;;
+#         "${DIALOG_CANCEL}")
+#             # If they chose no,
+#             printf "  %b Not installing StevenBlack's Unified Hosts List\\n" "${INFO}"
+#             ;;
+#         "${DIALOG_ESC}")
+#             # User pressed <ESC>
+#             printf "  %b Escape pressed, exiting installer at blocklist choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+#             exit 1
+#             ;;
+#     esac
+#     # Create an empty adList file with appropriate permissions.
     # MODIFICATION: FLZ_PI_HOLE
     printf "  %b Installing StevenBlack's Unified Hosts List\\n" "${INFO}"
     echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}"
@@ -1625,6 +2132,7 @@ displayFinalMessage() {
     fi
 
     # Final completion message to user
+    # MODIFICATION: FLZ_PI_HOLE
     dialog --no-shadow --keep-tite \
         --title "Installation Complete!" \
         --msgbox "Configure your devices to use the Pi-hole as their DNS server using:\
@@ -2102,8 +2610,8 @@ copy_to_install_log() {
     chmod 644 "${installLogLoc}"
 }
 
-# MODIFICATION: FLZ_PI_HOLE
 install_cloudflared(){
+    # ADDED: FLZ_PI_HOLE
     # Installing cloudflared for armhf architecture (32-bit Raspberry Pi)
     echo "Installing cloudflared for armhf architecture..."
     wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm
@@ -2119,7 +2627,7 @@ install_cloudflared(){
     sudo tee /etc/default/cloudflared <<EOF
 # Commandline args for cloudflared, using Cloudflare DNS
 CLOUDFLARED_OPTS=--port 5053 --upstream https://1.1.1.1/dns-query --upstream https://1.0.0.1/dns-query
-EOF
+EOF > /dev/null
 
     sudo chown cloudflared:cloudflared /etc/default/cloudflared
     sudo chown cloudflared:cloudflared /usr/local/bin/cloudflared
@@ -2139,7 +2647,7 @@ RestartSec=10
 KillMode=process
 [Install]
 WantedBy=multi-user.target
-EOF
+EOF > /dev/null
 
     sudo systemctl enable cloudflared
     sudo systemctl start cloudflared
