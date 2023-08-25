@@ -9,42 +9,42 @@
 					"label": "welcomeDialogs"
 				},
 				{
-					"line": 898,
+					"line": 911,
 					"column": 18,
 					"label": "getStaticIPv4Settings"
 				},
 				{
-					"line": 1122,
+					"line": 1135,
 					"column": 18,
 					"label": "setDNS"
 				},
 				{
-					"line": 1153,
+					"line": 1166,
 					"column": 18,
 					"label": "setLogging"
 				},
 				{
-					"line": 1181,
+					"line": 1194,
 					"column": 18,
 					"label": "setPrivacyLevel"
 				},
 				{
-					"line": 1251,
+					"line": 1264,
 					"column": 18,
 					"label": "setAdminFlag"
 				},
 				{
-					"line": 1290,
+					"line": 1303,
 					"column": 18,
 					"label": "chooseBlocklists"
 				},
 				{
-					"line": 2123,
+					"line": 2136,
 					"column": 18,
 					"label": "displayFinalMessage"
 				},
 				{
-					"line": 2937,
+					"line": 2950,
 					"column": 18,
 					"label": "main"
 				}

@@ -790,6 +790,19 @@ find_IPv6_information() {
     printf "  %b Generated IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
 }
 
+collect_v4andv6_information() {
+    find_IPv4_information
+    # Echo the information to the user
+    printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
+    # if `dhcpcd` is used offer to set this as static IP for the device
+    if [[ -f "/etc/dhcpcd.conf" ]]; then
+        # configure networking via dhcpcd
+        getStaticIPv4Settings
+    fi
+    find_IPv6_information
+    printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
+}
+
 getStaticIPv4Settings() {
     #     # Local, named variables
     #     local ipSettingsCorrect
