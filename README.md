@@ -35,7 +35,7 @@ To find an available IP in your network, ensure it's outside your configured DHC
 *I've modified the [original](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) script from Pi-hole to include predefined settings and cloudfared DoH, making installation as straightforward as possible. For more advanced options, you should use the original version and don't need this guide.*
 
 ```sh
-wget -O basic-install.sh https://pi-hole.flz.inc
+wget -O basic-install.sh https://pi-hole.flz.ink
 sudo PIHOLE_IP=192.168.1.5 bash ./basic-install.sh
 ```
 

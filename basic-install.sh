@@ -2604,7 +2604,7 @@ make_temporary_log() {
 copy_to_install_log() {
     # Copy the contents of file descriptor 3 into the install log
     # Since we use color codes such as '\e[1;33m', they should be removed
-    sed 's/^\[[0-9;]\{1,5\}m//g' basic-install.sh > basic-install-cleaned.sh
+    sed 's/\[[0-9;]\{1,5\}m//g' < /proc/$$/fd/3 > "${installLogLoc}"
     chmod 644 "${installLogLoc}"
 }
 
