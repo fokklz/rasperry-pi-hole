@@ -704,7 +704,6 @@ testIPv6() {
 }
 
 mac_to_eui64() {
-    # ADDED: FLZ_PI_HOLE
     local mac="$1"
     local oui="${mac:0:6}"     # First 24 bits of MAC
     local nic="${mac:6:12}"    # Last 24 bits of MAC
@@ -716,7 +715,6 @@ mac_to_eui64() {
 }
 
 generateIPv6() {
-    # ADDED: FLZ_PI_HOLE
     local prefix="$1"
     local interface="$2"  # Assuming you're passing the network interface as the 2nd argument
 
@@ -791,7 +789,7 @@ find_IPv6_information() {
     IPV6_ADDRESS=$(generateIPv6 "${prefix}" "${interface}")
 
     # Check if the generated address is already in use (using DAD)
-    if ip -6 neighbor probe "${IPV6_ADDRESS}"; then
+    if ping6 -c 1 -W 1 "${IPV6_ADDRESS}" &> /dev/null; then
         printf "  %b IPv6 address based on MAC is already in use. This is unexpected.\\n" "${ERROR}"
         IPV6_ADDRESS=""
         return
@@ -2606,12 +2604,13 @@ make_temporary_log() {
 copy_to_install_log() {
     # Copy the contents of file descriptor 3 into the install log
     # Since we use color codes such as '\e[1;33m', they should be removed
-    sed 's/\[[0-9;]\{1,5\}m//g' < /proc/$$/fd/3 > "${installLogLoc}"
+    sed 's/^\[[0-9;]\{1,5\}m//g' basic-install.sh > basic-install-cleaned.sh
     chmod 644 "${installLogLoc}"
 }
 
+
+# MODIFICATION: FLZ_PI_HOLE
 install_cloudflared(){
-    # ADDED: FLZ_PI_HOLE
     # Installing cloudflared for armhf architecture (32-bit Raspberry Pi)
     echo "Installing cloudflared for armhf architecture..."
     wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm
@@ -2627,7 +2626,7 @@ install_cloudflared(){
     sudo tee /etc/default/cloudflared <<EOF
 # Commandline args for cloudflared, using Cloudflare DNS
 CLOUDFLARED_OPTS=--port 5053 --upstream https://1.1.1.1/dns-query --upstream https://1.0.0.1/dns-query
-EOF > /dev/null
+EOF
 
     sudo chown cloudflared:cloudflared /etc/default/cloudflared
     sudo chown cloudflared:cloudflared /usr/local/bin/cloudflared
@@ -2647,7 +2646,7 @@ RestartSec=10
 KillMode=process
 [Install]
 WantedBy=multi-user.target
-EOF > /dev/null
+EOF
 
     sudo systemctl enable cloudflared
     sudo systemctl start cloudflared

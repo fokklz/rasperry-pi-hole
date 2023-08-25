@@ -14,62 +14,47 @@
 					"label": "chooseInterface"
 				},
 				{
-					"line": 706,
-					"column": 11,
-					"label": "mac_to_eui64"
-				},
-				{
-					"line": 718,
-					"column": 11,
-					"label": "generateIPv6"
-				},
-				{
-					"line": 767,
+					"line": 765,
 					"column": 18,
 					"label": "find_IPv6_information"
 				},
 				{
-					"line": 908,
+					"line": 906,
 					"column": 18,
 					"label": "getStaticIPv4Settings"
 				},
 				{
-					"line": 1133,
+					"line": 1131,
 					"column": 18,
 					"label": "setDNS"
 				},
 				{
-					"line": 1164,
+					"line": 1162,
 					"column": 18,
 					"label": "setLogging"
 				},
 				{
-					"line": 1192,
+					"line": 1190,
 					"column": 18,
 					"label": "setPrivacyLevel"
 				},
 				{
-					"line": 1262,
+					"line": 1260,
 					"column": 18,
 					"label": "setAdminFlag"
 				},
 				{
-					"line": 1301,
+					"line": 1299,
 					"column": 18,
 					"label": "chooseBlocklists"
 				},
 				{
-					"line": 2134,
+					"line": 2132,
 					"column": 18,
 					"label": "displayFinalMessage"
 				},
 				{
-					"line": 2613,
-					"column": 11,
-					"label": "install_cloudflared"
-				},
-				{
-					"line": 2931,
+					"line": 2930,
 					"column": 18,
 					"label": "main"
 				}

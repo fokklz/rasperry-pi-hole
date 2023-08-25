@@ -36,8 +36,7 @@ To find an available IP in your network, ensure it's outside your configured DHC
 
 ```sh
 wget -O basic-install.sh https://pi-hole.flz.inc
-export PIHOLE_IP=192.168.1.5
-sudo bash basic-install.sh
+sudo PIHOLE_IP=192.168.1.5 bash ./basic-install.sh
 ```
 
 ## Post-Setup
